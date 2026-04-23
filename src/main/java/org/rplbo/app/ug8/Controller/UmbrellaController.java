@@ -11,14 +11,15 @@ import org.rplbo.app.ug8.UmbrellaApp;
 import org.rplbo.app.ug8.UmbrellaDBManager;
 
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class UmbrellaController implements Initializable {
     // Variabel FXML diubah untuk mencerminkan skema Grup B
-    @FXML private TextField txtItem, txtInitial, txtSupply;
-    @FXML private TableView<InventoryItem> tableInventory;
-    @FXML private TableColumn<InventoryItem, String> colName;
-    @FXML private TableColumn<InventoryItem, Integer> colInitial, colSupply, colFinal;
+    @FXML private TextField item, initial, supply;
+    @FXML private TableView<InventoryItem> inventory;
+    @FXML private TableColumn<InventoryItem, String> invName;
+    @FXML private TableColumn<InventoryItem, Integer> invInitial, invSupply, invFinal;
 
     private UmbrellaDBManager db;
     private ObservableList<InventoryItem> masterData = FXCollections.observableArrayList();
@@ -34,13 +35,15 @@ public class UmbrellaController implements Initializable {
         // ==============================================================================
         // Hubungkan setiap TableColumn (colName, colInitial, colSupply, colFinal)
         // dengan nama atribut (property) yang sesuai di dalam class InventoryItem.
-        // Gunakan setCellValueFactory() dan new PropertyValueFactory<>().
+        // Gunakan setCellValueFactory() dan new PropertyValueFactory<>(). (???)
         // ==============================================================================
 
         // --- TULIS KODE ANDA DI BAWAH INI ---
 
-
-
+        invName.setCellValueFactory(new PropertyValueFactory<>("itemName"));
+        invInitial.setCellValueFactory(new PropertyValueFactory<>("initialStock"));
+        invSupply.setCellValueFactory(new PropertyValueFactory<>("newSupply"));
+        invFinal.setCellValueFactory(new PropertyValueFactory<>("finalStock"));
 
         // ==============================================================================
         // TODO 2: LISTENER KLIK BARIS TABEL (SELECTION MODEL)
@@ -55,12 +58,13 @@ public class UmbrellaController implements Initializable {
         //    nama item (Primary Key) saat sedang mengedit data.
         // ==============================================================================
 
-        tableInventory.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+        inventory.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
-                // --- TULIS KODE ANDA DI BAWAH INI ---
-
-
-
+                selectedItem = newVal;
+                item.setText(selectedItem.getItemName());
+                item.setDisable(true);
+                initial.setText(String.valueOf(selectedItem.getInitialStock()));
+                supply.setText(String.valueOf(selectedItem.getNewSupply()));
             }
         });
 
@@ -85,7 +89,18 @@ public class UmbrellaController implements Initializable {
 
         // --- TULIS KODE ANDA DI BAWAH INI ---
 
+        if (selectedItem == null) return;
+        int newInitial = Integer.parseInt(initial.getText());
+        int newSupply  = Integer.parseInt(supply.getText());
+        int finalStock = newInitial + newSupply;
 
+        selectedItem.setInitialStock(newInitial);
+        selectedItem.setNewSupply(newSupply);
+        selectedItem.setFinalStock(finalStock);
+
+        db.updateItem(selectedItem);
+        refreshTable();
+        clearFields();
     }
 
     @FXML
@@ -102,9 +117,19 @@ public class UmbrellaController implements Initializable {
         // 6. Panggil metode refreshTable() agar data baru muncul di tabel.
         // ==============================================================================
 
+        /*
+         * Do you ever use block comments? Use them.
+         * */
+
         // --- TULIS KODE ANDA DI BAWAH INI ---
 
+        String itemName = item.getText();
+        int newInitial = Integer.parseInt(initial.getText());
+        int newSupply  = Integer.parseInt(supply.getText());
+        int finalStock = newInitial + newSupply;
 
+        db.addItem(new InventoryItem(itemName, newInitial, newSupply, finalStock));
+        refreshTable();
     }
 
     @FXML
@@ -124,7 +149,35 @@ public class UmbrellaController implements Initializable {
 
         // --- TULIS KODE ANDA DI BAWAH INI ---
 
+        // Shouty caps aren't the most friendly register, but the examples given weren't nice
+        if (selectedItem == null) {
+            Alert youForgot = new Alert(Alert.AlertType.WARNING);
+            youForgot.setTitle("ATTENTION");
+            youForgot.setHeaderText("ITEM NOT SELECTED");
+            // I'm not sure who is Umbrella Corp. nor if they call their colleagues "agents",
+            // but I think it's very thematic
+            // (can someone can elaborate what this is referencing to?)
+            youForgot.setContentText("AGENT, PLEASE SELECT THE ITEM TO BE DELETED.");
+            ((Button) youForgot.getDialogPane().lookupButton(ButtonType.OK)).setText("OK");
+            youForgot.showAndWait();
+            return;
+        }
+        Alert areYouSure = new Alert(
+            Alert.AlertType.CONFIRMATION,
+            "AGENT, ARE YOU SURE YOU WANT TO DELETE THIS ITEM?",
+            new ButtonType("YES", ButtonBar.ButtonData.YES),
+            new ButtonType("NO", ButtonBar.ButtonData.NO)
+        );
+        areYouSure.setTitle("ATTENTION");
+        areYouSure.setHeaderText("CONFIRM DELETION");
+        Optional<ButtonType> selection = areYouSure.showAndWait();
+        System.err.println(selection);
 
+        if (selection.isPresent() && selection.get().getButtonData() == ButtonBar.ButtonData.YES) {
+            db.deleteItem(selectedItem.getItemName());
+            refreshTable();
+            clearFields();
+        }
     }
 
     // Logout
@@ -140,10 +193,10 @@ public class UmbrellaController implements Initializable {
     // Bersihkan Text Fields
     @FXML
     private void clearFields() {
-        txtItem.clear();
-        txtInitial.clear();
-        txtSupply.clear();
-        txtItem.setDisable(false);
+        item.clear();
+        initial.clear();
+        supply.clear();
+        item.setDisable(false);
         selectedItem = null;
     }
 
@@ -151,6 +204,6 @@ public class UmbrellaController implements Initializable {
     @FXML
     private void refreshTable() {
         masterData.setAll(db.getAllItems());
-        tableInventory.setItems(masterData);
+        inventory.setItems(masterData);
     }
 }

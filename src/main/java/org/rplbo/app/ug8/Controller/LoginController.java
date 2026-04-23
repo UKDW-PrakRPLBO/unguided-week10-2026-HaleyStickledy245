@@ -6,10 +6,12 @@ import javafx.event.ActionEvent;
 import org.rplbo.app.ug8.UmbrellaApp;
 import org.rplbo.app.ug8.UmbrellaDBManager;
 
+import java.io.IOException;
+
 public class LoginController {
-    @FXML private TextField txtUsername;
-    @FXML private PasswordField txtPassword;
-    @FXML private Label lblStatus;
+    @FXML private TextField username;
+    @FXML private PasswordField password;
+    @FXML private Label status;
 
     @FXML
     private void handleLogin(ActionEvent event) {
@@ -27,6 +29,20 @@ public class LoginController {
 
         // --- TULIS KODE ANDA DI BAWAH INI ---
 
+        String username = this.username.getText();
+        String password = this.password.getText();
 
+        UmbrellaDBManager db = new UmbrellaDBManager();
+        String fullName = db.validateUser(username, password);
+        if (fullName != null) {
+            UmbrellaApp.loggedInUser = fullName;
+            try {
+                UmbrellaApp.switchScene("umbrella-view.fxml");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            status.setText("AUTHENTICATION FAILED");
+        }
     }
 }

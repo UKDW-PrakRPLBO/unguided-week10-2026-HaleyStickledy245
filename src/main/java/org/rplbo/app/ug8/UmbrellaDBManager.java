@@ -3,6 +3,7 @@ package org.rplbo.app.ug8;
 import java.sql.*;
 import java.util.ArrayList;
 
+// Some documentation would be nice -- Gilbert
 public class UmbrellaDBManager {
     // Menggunakan variabel ini secara konsisten untuk Grup B
     private static final String URL = "jdbc:sqlite:umbrella_inventory_b.db";
